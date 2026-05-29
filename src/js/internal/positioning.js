@@ -36,8 +36,6 @@ function setCss(el, styles) {
 export function move(picker) {
   let dropDirection = picker.options.dropDirection
   let parentOffset = { top: 0, left: 0 }
-  let parentRightEdge = window.innerWidth
-
   if (picker.options.appendTo !== document.body) {
     const off = getOffset(picker.options.appendTo)
 
@@ -45,8 +43,6 @@ export function move(picker) {
       top: off.top - picker.options.appendTo.scrollTop,
       left: off.left - picker.options.appendTo.scrollLeft
     }
-
-    parentRightEdge = picker.options.appendTo.clientWidth + off.left
   }
 
   const elOff = getOffset(picker.element)
@@ -85,33 +81,28 @@ export function move(picker) {
 
   picker.container.classList.toggle('drop-up', dropDirection === 'up')
 
+  const viewportLeft = window.scrollX
+  const viewportRight = window.scrollX + window.innerWidth
+
+  let absLeft = elOff.left
+
   if (picker.options.openDirection === 'left') {
-    const containerRight = parentRightEdge - elOff.left - picker.element.offsetWidth
-
-    setCss(
-      picker.container,
-      containerWidth + containerRight > window.innerWidth
-        ? { right: 'auto', left: EDGE_MARGIN }
-        : { right: containerRight, left: 'auto' }
-    )
+    absLeft = elOff.left + picker.element.offsetWidth - containerWidth
   } else if (picker.options.openDirection === 'center') {
-    const containerLeft = elOff.left - parentOffset.left + picker.element.offsetWidth / 2 - containerWidth / 2
-
-    if (containerLeft < 0) {
-      setCss(picker.container, { right: 'auto', left: EDGE_MARGIN })
-    } else if (containerLeft + containerWidth > window.innerWidth) {
-      setCss(picker.container, { left: 'auto', right: EDGE_MARGIN })
-    } else {
-      setCss(picker.container, { left: containerLeft, right: 'auto' })
-    }
-  } else {
-    const containerLeft = elOff.left - parentOffset.left
-
-    setCss(
-      picker.container,
-      containerLeft + containerWidth > window.innerWidth
-        ? { left: 'auto', right: EDGE_MARGIN }
-        : { left: containerLeft, right: 'auto' }
-    )
+    absLeft = elOff.left + picker.element.offsetWidth / 2 - containerWidth / 2
   }
+
+  // Clamp left to viewport bounds
+  if (absLeft < viewportLeft + EDGE_MARGIN) {
+    absLeft = viewportLeft + EDGE_MARGIN
+  }
+
+  if (absLeft + containerWidth > viewportRight - EDGE_MARGIN) {
+    absLeft = Math.max(viewportLeft + EDGE_MARGIN, viewportRight - EDGE_MARGIN - containerWidth)
+  }
+
+  setCss(picker.container, {
+    left: absLeft - parentOffset.left,
+    right: 'auto'
+  })
 }
