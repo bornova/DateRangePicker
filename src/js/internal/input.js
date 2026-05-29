@@ -1,7 +1,7 @@
 import { DateTime } from 'luxon'
 
 import { updateView } from './rendering.js'
-import { dismiss } from './dismiss.js'
+import { dismiss } from './interactions.js'
 
 /** @typedef {import('../DateRangePicker.js').default} DateRangePicker */
 
@@ -51,6 +51,7 @@ export function parseInput(picker, e) {
 export function onElementKey(picker, e) {
   if (e.key === 'Tab' || e.key === 'Enter') {
     parseInput(picker)
+    picker._state.commitOnHide = true
     picker.hide()
   }
 
