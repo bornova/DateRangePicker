@@ -1,9 +1,8 @@
 import { DateTime } from 'luxon'
 
 import { allCalendars, sideFromIndex } from './calendars.js'
-import { clickDate } from './interactions.js'
+import { clickDate, dismiss } from './interactions.js'
 import { updateCalendars, CALENDAR_ROWS, CALENDAR_COLS } from './rendering.js'
-import { dismiss } from './dismiss.js'
 
 /** @typedef {import('../DateRangePicker.js').default} DateRangePicker */
 
@@ -146,6 +145,18 @@ export function revealFocused(picker) {
       allCals[i].month = allCals[lastVisibleIdx].month.plus({ months: i - lastVisibleIdx })
     }
   } else {
-    allCals[allCals.length - 1].month = allCals[allCals.length - 1].month.set({ month: fd.month, year: fd.year })
+    const fdVal = fd.startOf('month')
+    let targetIdx = allCals.length - 1
+    for (let i = 0; i < allCals.length - 1; i++) {
+      const leftM = allCals[i].month.startOf('month')
+      const rightM = allCals[i + 1].month.startOf('month')
+      if (fdVal > leftM && fdVal < rightM) {
+        const diffLeft = Math.abs(fdVal.diff(leftM, 'months').months)
+        const diffRight = Math.abs(rightM.diff(fdVal, 'months').months)
+        targetIdx = diffLeft <= diffRight ? i : i + 1
+        break
+      }
+    }
+    allCals[targetIdx].month = allCals[targetIdx].month.set({ month: fd.month, year: fd.year })
   }
 }
