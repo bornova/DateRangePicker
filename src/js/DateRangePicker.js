@@ -1,4 +1,4 @@
-﻿import { createDefaultOptions, applyOptions } from './internal/options.js'
+import { createDefaultOptions, applyOptions } from './internal/options.js'
 import { getDataAttributes } from './internal/helpers.js'
 import {
   buildContainer,
@@ -101,6 +101,8 @@ class DateRangePicker {
 
     if (this.options.singleDatePicker) {
       this.options.endDate = this.options.startDate
+    } else if (this.options.endDate && this.options.startDate > this.options.endDate) {
+      this.options.endDate = this.options.showTimePicker ? this.options.startDate : this.options.startDate.endOf('day')
     }
 
     if (!this._state.isShowing) {
