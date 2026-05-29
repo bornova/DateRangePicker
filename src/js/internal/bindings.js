@@ -1,4 +1,4 @@
-import { allCalendars, clampCalendarMonths } from './calendars.js'
+import { allCalendars, clampCalendarMonths, calendarIndex } from './calendars.js'
 import {
   clickPrev,
   clickNext,
@@ -9,9 +9,9 @@ import {
   clickDate,
   hoverDate,
   changeMonthOrYear,
-  changeTime
+  changeTime,
+  outsideClick
 } from './interactions.js'
-import { outsideClick } from './dismiss.js'
 import { onKeyNav } from './keyboard.js'
 import { move } from './positioning.js'
 import { updateCalendars } from './rendering.js'
@@ -77,10 +77,13 @@ export function bindHandlers(picker) {
 
   picker._state.touchStartX = 0
   picker._state.touchStartY = 0
+  picker._state.touchStartCalIdx = null
 
   picker._state.containerTouchStartHandler = (e) => {
     picker._state.touchStartX = e.touches[0].clientX
     picker._state.touchStartY = e.touches[0].clientY
+    const cal = e.target.closest('.drp-calendar')
+    picker._state.touchStartCalIdx = cal ? calendarIndex(picker, cal) : null
   }
 
   picker._state.containerTouchEndHandler = (e) => {
@@ -96,10 +99,28 @@ export function bindHandlers(picker) {
         allCals.forEach((c) => {
           c.month = c.month.plus({ months })
         })
-      } else if (dx > 0) {
-        picker._state.leftCalendar.month = picker._state.leftCalendar.month.minus({ months: 1 })
       } else {
-        picker._state.rightCalendar.month = picker._state.rightCalendar.month.plus({ months: 1 })
+        let idx = picker._state.touchStartCalIdx
+        if (idx === null || idx === undefined) {
+          idx = dx > 0 ? 0 : allCals.length - 1
+        }
+        const cal = allCals[idx]
+        const newMonth = cal.month.plus({ months })
+
+        let valid = true
+        if (months < 0) {
+          if (idx > 0 && newMonth.toFormat('yyyy-MM') <= allCals[idx - 1].month.toFormat('yyyy-MM')) {
+            valid = false
+          }
+        } else {
+          if (idx < allCals.length - 1 && newMonth.toFormat('yyyy-MM') >= allCals[idx + 1].month.toFormat('yyyy-MM')) {
+            valid = false
+          }
+        }
+
+        if (valid) {
+          cal.month = newMonth
+        }
       }
 
       clampCalendarMonths(picker)
