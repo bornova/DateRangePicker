@@ -2686,3 +2686,197 @@ test.describe('on() with multiple handlers for the same event', () => {
     expect(c2).toBe(1)
   })
 })
+
+//  ============================================================
+//  Bug Fix Verifications
+//  ============================================================
+
+test.describe('setStartDate clamping of endDate', () => {
+  test('setting startDate after endDate clamps endDate to startDate', async ({ page }) => {
+    await setup(page, {
+      startDate: '04/01/2025',
+      endDate: '04/10/2025',
+      locale: { format: 'MM/dd/yyyy' }
+    })
+    await page.evaluate(() => window.pickerInstance.setStartDate('04/15/2025'))
+    const val = await page.locator('#picker').inputValue()
+    expect(val).toBe('04/15/2025 - 04/15/2025')
+  })
+})
+
+test.describe('Time picker clicking earlier time on same day', () => {
+  test('clicking earlier time on same day swaps dates instead of ignoring click', async ({ page }) => {
+    await setup(page, {
+      showTimePicker: true,
+      timePicker24Hour: true,
+      startDate: '04/15/2025',
+      endDate: '04/15/2025',
+      locale: { format: 'MM/dd/yyyy' }
+    })
+    await openPicker(page)
+    const cells = page.locator('.drp-calendar.left .calendar-cell.available')
+    let cell15
+    for (const cell of await cells.all()) {
+      if ((await cell.textContent()).trim() === '15') {
+        cell15 = cell
+        break
+      }
+    }
+    await cell15.click() // resets endDate to null
+
+    await page.evaluate(() => {
+      window.pickerInstance.setStartDate(luxon.DateTime.fromISO('2025-04-15T12:00:00'))
+      window.pickerInstance.options.endDate = null
+      window.pickerInstance.updateInput()
+    })
+
+    await page.locator('.drp-time-row .calendar-time.right .hourselect').selectOption('10')
+    await cell15.click()
+
+    const range = await page.evaluate(() => ({
+      start: window.pickerInstance.options.startDate.toISO(),
+      end: window.pickerInstance.options.endDate.toISO()
+    }))
+    expect(range.start).toContain('T10:00:00')
+    expect(range.end).toContain('T12:00:00')
+  })
+})
+
+test.describe('Input typing commit on Tab/Enter', () => {
+  test('pressing Tab after typing a valid range commits the selection', async ({ page }) => {
+    await setup(page, {
+      autoApply: false,
+      locale: { format: 'MM/dd/yyyy' }
+    })
+    await page.evaluate(() => {
+      window._changeFired = false
+      window.pickerInstance.on('change', () => {
+        window._changeFired = true
+      })
+    })
+    await page.locator('#picker').fill('05/01/2025 - 05/10/2025')
+    await page.locator('#picker').press('Tab')
+    const changeFired = await page.evaluate(() => window._changeFired)
+    expect(changeFired).toBe(true)
+  })
+})
+
+test.describe('endDate with null startDate option', () => {
+  test('picker opens successfully and does not crash when only endDate is specified', async ({ page }) => {
+    await setup(page, {
+      endDate: '04/10/2025',
+      locale: { format: 'MM/dd/yyyy' }
+    })
+    await openPicker(page)
+    await expect(page.locator('.daterangepicker')).toBeVisible()
+  })
+})
+
+test.describe('Keyboard navigation chronological order with syncCalendars=false', () => {
+  test('keyboard nav to non-visible month keeps calendar panels in chronological order', async ({ page }) => {
+    await page.goto(FIXTURE)
+    await page.evaluate(() => {
+      window.pickerInstance = new DateRangePicker('#picker', {
+        calendarCount: 3,
+        syncCalendars: false,
+        startDate: '05/01/2025',
+        endDate: '12/01/2025',
+        locale: { format: 'MM/dd/yyyy' }
+      })
+    })
+    await openPicker(page)
+    await page.locator('.daterangepicker').focus()
+    await page.keyboard.press('PageDown')
+    await page.keyboard.press('PageDown')
+    const months = await page
+      .locator('.drp-calendar .month')
+      .evaluateAll((els) => els.map((el) => el.textContent.trim()))
+    expect(months[0]).toContain('May')
+    expect(months[1]).toContain('Jul')
+    expect(months[2]).toContain('Dec')
+  })
+})
+
+test.describe('Touch swipe navigation with syncCalendars=false', () => {
+  test('swiping left/right on specific calendar panel updates only that panel and respects bounds', async ({
+    page
+  }) => {
+    await page.goto(FIXTURE)
+    await page.evaluate(() => {
+      window.pickerInstance = new DateRangePicker('#picker', {
+        calendarCount: 2,
+        syncCalendars: false,
+        startDate: '05/01/2025',
+        endDate: '06/01/2025',
+        locale: { format: 'MM/dd/yyyy' }
+      })
+    })
+    await openPicker(page)
+
+    // 1. Swipe right (backwards) on left calendar -> Should change May to April
+    await page.evaluate(() => {
+      const leftCal = document.querySelector('.drp-calendar.left')
+      leftCal.dispatchEvent(
+        new TouchEvent('touchstart', {
+          bubbles: true,
+          touches: [new Touch({ identifier: 1, target: leftCal, clientX: 100, clientY: 100 })]
+        })
+      )
+      leftCal.dispatchEvent(
+        new TouchEvent('touchend', {
+          bubbles: true,
+          changedTouches: [new Touch({ identifier: 1, target: leftCal, clientX: 200, clientY: 100 })]
+        })
+      )
+    })
+    let leftMonth = await page.locator('.drp-calendar.left .month').first().textContent()
+    let rightMonth = await page.locator('.drp-calendar.right .month').first().textContent()
+    expect(leftMonth).toContain('Apr')
+    expect(rightMonth).toContain('Jun')
+
+    // Reset left calendar to May by calling setStartDate
+    await page.evaluate(() => {
+      window.pickerInstance.setDateRange('05/01/2025', '06/01/2025')
+    })
+
+    // 2. Swipe left (forward) on left calendar (May) -> should try to change to June,
+    // which collides with right calendar (June) -> should be ignored.
+    await page.evaluate(() => {
+      const leftCal = document.querySelector('.drp-calendar.left')
+      leftCal.dispatchEvent(
+        new TouchEvent('touchstart', {
+          bubbles: true,
+          touches: [new Touch({ identifier: 1, target: leftCal, clientX: 200, clientY: 100 })]
+        })
+      )
+      leftCal.dispatchEvent(
+        new TouchEvent('touchend', {
+          bubbles: true,
+          changedTouches: [new Touch({ identifier: 1, target: leftCal, clientX: 100, clientY: 100 })]
+        })
+      )
+    })
+    leftMonth = await page.locator('.drp-calendar.left .month').first().textContent()
+    expect(leftMonth).toContain('May')
+
+    // 3. Swipe right (backward) on right calendar (June) -> should try to change to May,
+    // which collides with left calendar (May) -> should be ignored.
+    await page.evaluate(() => {
+      const rightCal = document.querySelector('.drp-calendar.right')
+      rightCal.dispatchEvent(
+        new TouchEvent('touchstart', {
+          bubbles: true,
+          touches: [new Touch({ identifier: 1, target: rightCal, clientX: 100, clientY: 100 })]
+        })
+      )
+      rightCal.dispatchEvent(
+        new TouchEvent('touchend', {
+          bubbles: true,
+          changedTouches: [new Touch({ identifier: 1, target: rightCal, clientX: 200, clientY: 100 })]
+        })
+      )
+    })
+    rightMonth = await page.locator('.drp-calendar.right .month').first().textContent()
+    expect(rightMonth).toContain('Jun')
+  })
+})
