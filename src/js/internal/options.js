@@ -139,7 +139,9 @@ export function applyOptions(picker, options) {
 
   if (options.disabledDates != null) {
     if (Array.isArray(options.disabledDates)) {
-      picker.options.disabledDates = options.disabledDates.map((d) => parseDateTime(picker, d)).filter(Boolean)
+      picker.options.disabledDates = options.disabledDates
+        .map((d) => parseDateTime(picker, d))
+        .filter((d) => d && d.isValid)
     } else if (typeof options.disabledDates === 'function') {
       picker.options.disabledDates = options.disabledDates
     }
@@ -151,25 +153,37 @@ export function applyOptions(picker, options) {
 
   if (options.startDate != null) {
     picker.options.startDate = parseDateTime(picker, options.startDate)
+    if (picker.options.startDate && !picker.options.startDate.isValid) {
+      picker.options.startDate = null
+    }
   }
 
-  if (options.endDate != null) {
-    picker.options.endDate = parseDateTime(picker, options.endDate)
-  } else if (options.startDate != null) {
-    // Default endDate to end-of-day of startDate when only startDate is supplied
-    picker.options.endDate = picker.options.startDate.endOf('day')
+  if (picker.options.startDate) {
+    if (options.endDate != null) {
+      picker.options.endDate = parseDateTime(picker, options.endDate)
+      if (picker.options.endDate && !picker.options.endDate.isValid) {
+        picker.options.endDate = null
+      }
+    } else if (options.startDate != null) {
+      // Default endDate to end-of-day of startDate when only startDate is supplied
+      picker.options.endDate = picker.options.startDate.endOf('day')
+    }
+  } else {
+    picker.options.endDate = null
   }
 
   if (options.minDate === false) {
     picker.options.minDate = null
   } else if (options.minDate != null) {
-    picker.options.minDate = parseDateTime(picker, options.minDate)
+    const parsed = parseDateTime(picker, options.minDate)
+    picker.options.minDate = parsed && parsed.isValid ? parsed : null
   }
 
   if (options.maxDate === false) {
     picker.options.maxDate = null
   } else if (options.maxDate != null) {
-    picker.options.maxDate = parseDateTime(picker, options.maxDate)
+    const parsed = parseDateTime(picker, options.maxDate)
+    picker.options.maxDate = parsed && parsed.isValid ? parsed : null
   }
 
   if (picker.options.minDate && picker.options.startDate && picker.options.startDate < picker.options.minDate) {
