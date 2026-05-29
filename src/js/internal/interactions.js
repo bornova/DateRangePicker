@@ -119,7 +119,19 @@ export function clickDate(picker, e) {
     picker.options.endDate = null
     picker.setStartDate(date)
   } else if (!picker.options.endDate && date < picker.options.startDate) {
-    picker.setEndDate(picker.options.startDate)
+    const oldStart = picker.options.startDate
+
+    if (picker.options.showTimePicker) {
+      const leftTime = readTime(picker, 'left')
+      const rightTime = readTime(picker, 'right')
+
+      date = date.set(rightTime)
+      picker.setStartDate(date)
+      picker.setEndDate(oldStart.set(leftTime))
+    } else {
+      picker.setStartDate(date)
+      picker.setEndDate(oldStart)
+    }
   } else {
     if (picker.options.showTimePicker) {
       const { hour, minute, second } = readTime(picker, 'right')
@@ -447,5 +459,42 @@ export function changeTime(picker, e) {
     if (focusEl && !focusEl.disabled) {
       focusEl.focus({ preventScroll: true })
     }
+  }
+}
+
+/** Closes the picker when the user clicks/taps outside it.
+ *  @param {DateRangePicker} picker
+ *  @param {Event} e */
+export function outsideClick(picker, e) {
+  const calTable = e.target.closest('.calendar-table')
+  if (
+    picker.element.contains(e.target) ||
+    picker.container.contains(e.target) ||
+    (calTable && picker.container.contains(calTable))
+  ) {
+    return
+  }
+
+  // Guard against the click event that triggered show() immediately bubbling up
+  // to the document listener and closing the picker that was just opened.
+  if (picker._state.showTime && Date.now() - picker._state.showTime < 50) return
+
+  // Record when the close happened so show() can guard against immediately
+  // reopening when an external toggle button calls toggle().
+  picker._state.outsideClickTime = Date.now()
+
+  dismiss(picker)
+}
+
+/**
+ * Closes the picker, optionally cancelling unapplied changes when `cancelOnClose` is set.
+ * Shared by outside-click and Escape-key dismissal.
+ * @param {DateRangePicker} picker
+ */
+export function dismiss(picker) {
+  if (picker.options.cancelOnClose) {
+    clickCancel(picker)
+  } else {
+    picker.hide()
   }
 }
