@@ -312,6 +312,7 @@ export function clickClear(picker) {
   picker._state.skipCommitOnHide = true
   picker._state.hasPendingUnappliedSelection = false
   picker.hide()
+  picker._state.skipCommitOnHide = false
   picker.options.autoUpdateInput = prev
 
   if (picker.element.matches('input')) {
