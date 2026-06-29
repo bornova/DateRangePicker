@@ -1985,6 +1985,16 @@ test.describe('apply() and clear() API', () => {
     const log = await getLog(page)
     expect(log.some((l) => l.startsWith('event:clear'))).toBe(true)
   })
+
+  test('clear() when closed does not break subsequent selection apply/commit', async ({ page }) => {
+    await setup(page, { autoApply: true })
+    await page.evaluate(() => window.pickerInstance.clear())
+    await openPicker(page)
+    await clickDayLeft(page, '5')
+    await clickDayLeft(page, '12')
+    const val = await page.locator('#picker').inputValue()
+    expect(val).not.toBe('')
+  })
 })
 
 test.describe('isShowing state', () => {
