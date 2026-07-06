@@ -14,7 +14,7 @@ import { to24h } from './helpers.js'
  */
 export function parseDateTime(picker, val) {
   if (typeof val === 'string') return DateTime.fromFormat(val, picker.options.locale.format)
-  if (val instanceof DateTime) return val
+  if (DateTime.isDateTime(val)) return val
   if (val instanceof Date) return DateTime.fromJSDate(val)
 
   return null
