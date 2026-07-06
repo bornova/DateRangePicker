@@ -15,7 +15,7 @@ import { updateCalendars, CALENDAR_ROWS, CALENDAR_COLS } from './rendering.js'
 export function onKeyNav(picker, e) {
   if (!picker._state.isShowing) return
   if (!picker.container.contains(document.activeElement)) return
-  if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return
+  if (['SELECT', 'INPUT', 'BUTTON'].includes(e.target.tagName)) return
 
   const navKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'PageUp', 'PageDown']
 
