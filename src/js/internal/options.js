@@ -82,6 +82,12 @@ import { parseDateTime } from './dates.js'
  * @param {DateRangePickerOptions} options
  */
 export function applyOptions(picker, options) {
+  const coerceNumber = (val) => {
+    if (typeof val === 'string' && val.trim() !== '' && !isNaN(val)) return Number(val)
+
+    return val
+  }
+
   /** Maps option keys to the `typeof` value required to accept them. */
   const typedOptionKeys = {
     showInline: 'boolean',
@@ -119,12 +125,14 @@ export function applyOptions(picker, options) {
     }
   }
 
-  if (typeof options.calendarCount === 'number') {
-    picker.options.calendarCount = Math.max(1, Math.min(12, Math.round(options.calendarCount)))
+  const calendarCount = coerceNumber(options.calendarCount)
+  if (typeof calendarCount === 'number' && Number.isFinite(calendarCount)) {
+    picker.options.calendarCount = Math.max(1, Math.min(12, Math.round(calendarCount)))
   }
 
-  if (typeof options.verticalColumns === 'number' && Number.isFinite(options.verticalColumns)) {
-    picker.options.verticalColumns = Math.max(1, Math.round(options.verticalColumns))
+  const verticalColumns = coerceNumber(options.verticalColumns)
+  if (typeof verticalColumns === 'number' && Number.isFinite(verticalColumns)) {
+    picker.options.verticalColumns = Math.max(1, Math.round(verticalColumns))
   }
 
   const resolvedAppendTo =
@@ -198,16 +206,19 @@ export function applyOptions(picker, options) {
     picker.options.endDate = picker.options.startDate.endOf('day')
   }
 
-  if (typeof options.minuteIncrement === 'number' && Number.isFinite(options.minuteIncrement)) {
-    picker.options.minuteIncrement = Math.max(1, Math.round(options.minuteIncrement))
+  const minuteIncrement = coerceNumber(options.minuteIncrement)
+  if (typeof minuteIncrement === 'number' && Number.isFinite(minuteIncrement)) {
+    picker.options.minuteIncrement = Math.max(1, Math.round(minuteIncrement))
   }
 
-  if (typeof options.minDuration === 'number' && !picker.options.singleDatePicker) {
-    picker.options.minDuration = options.minDuration
+  const minDuration = coerceNumber(options.minDuration)
+  if (typeof minDuration === 'number' && !picker.options.singleDatePicker) {
+    picker.options.minDuration = minDuration
   }
 
-  if (typeof options.maxDuration === 'number' && !picker.options.singleDatePicker) {
-    picker.options.maxDuration = options.maxDuration
+  const maxDuration = coerceNumber(options.maxDuration)
+  if (typeof maxDuration === 'number' && !picker.options.singleDatePicker) {
+    picker.options.maxDuration = maxDuration
   }
 
   if (typeof options.durationFormat === 'string') {
@@ -252,6 +263,11 @@ export function applyOptions(picker, options) {
       const n = picker.options.locale.firstDay
 
       picker.options.locale.daysOfWeek = [...loc.daysOfWeek.slice(n), ...loc.daysOfWeek.slice(0, n)]
+    } else if (typeof loc.firstDay === 'number') {
+      const baseDays = getWeekdaysMin()
+      const n = picker.options.locale.firstDay
+
+      picker.options.locale.daysOfWeek = [...baseDays.slice(n), ...baseDays.slice(0, n)]
     }
 
     if (Array.isArray(loc.monthNames)) {
@@ -262,6 +278,10 @@ export function applyOptions(picker, options) {
 
 /** Creates a default options object for DateRangePickerCore with all properties set to their default values. */
 export function createDefaultOptions() {
+  const firstDay = getFirstDayOfWeek()
+  const daysOfWeek = getWeekdaysMin()
+  const rotatedDays = [...daysOfWeek.slice(firstDay), ...daysOfWeek.slice(0, firstDay)]
+
   return {
     showInline: false,
     showVertical: false,
@@ -320,9 +340,9 @@ export function createDefaultOptions() {
       cancelButtonLabel: 'Cancel',
       clearButtonLabel: 'Clear',
       customRangeLabel: 'Custom Range',
-      daysOfWeek: getWeekdaysMin(),
+      daysOfWeek: rotatedDays,
       direction: 'ltr',
-      firstDay: getFirstDayOfWeek(),
+      firstDay,
       format: getLocaleDateFormat(),
       monthNames: getMonthsShort(),
       separator: ' - ',
