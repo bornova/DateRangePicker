@@ -84,7 +84,7 @@ export function updateSelected(picker) {
   if (!selectedEl) return
 
   selectedEl.style.display = picker.options.showSelectedDates ? '' : 'none'
-  selectedEl.innerHTML = formatRange(picker)
+  selectedEl.textContent = formatRange(picker)
 
   const durEl = picker.container.querySelector('.drp-duration')
 
