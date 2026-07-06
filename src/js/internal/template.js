@@ -190,11 +190,11 @@ export function configureContainer(picker, options) {
     const clearBtn = picker.container.querySelector('.drp-clear-button')
 
     clearBtn.style.display = ''
-    clearBtn.innerHTML = picker.options.locale.clearButtonLabel
+    clearBtn.textContent = picker.options.locale.clearButtonLabel
   }
 
-  picker.container.querySelector('.drp-apply-button').innerHTML = picker.options.locale.applyButtonLabel
-  picker.container.querySelector('.drp-cancel-button').innerHTML = picker.options.locale.cancelButtonLabel
+  picker.container.querySelector('.drp-apply-button').textContent = picker.options.locale.applyButtonLabel
+  picker.container.querySelector('.drp-cancel-button').textContent = picker.options.locale.cancelButtonLabel
 }
 
 /**
