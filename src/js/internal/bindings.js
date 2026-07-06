@@ -40,7 +40,22 @@ const CONTAINER_HANDLERS = [
  */
 export function bindHandlers(picker) {
   picker._state.outsideClickProxy = (e) => outsideClick(picker, e)
-  picker._state.windowResizeProxy = () => move(picker)
+
+  let resizeTicking = false
+
+  picker._state.windowResizeProxy = () => {
+    if (!resizeTicking) {
+      window.requestAnimationFrame(() => {
+        if (picker._state.isShowing) {
+          move(picker)
+        }
+
+        resizeTicking = false
+      })
+
+      resizeTicking = true
+    }
+  }
 
   picker._state.containerClickHandler = (e) => {
     if (e.target.closest('.prev')) clickPrev(picker, e)
