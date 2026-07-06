@@ -59,8 +59,8 @@ export function markChosenLabel(picker) {
  * @returns {boolean}
  */
 export function datesEqual(a, b) {
-  if (a === null && b === null) return true
-  if (a === null || b === null) return false
+  if ((a === null || a === undefined) && (b === null || b === undefined)) return true
+  if (a === null || a === undefined || b === null || b === undefined) return false
 
   return a.equals(b)
 }
