@@ -2890,3 +2890,58 @@ test.describe('Touch swipe navigation with syncCalendars=false', () => {
     expect(rightMonth).toContain('Jun')
   })
 })
+
+test.describe('Improvements / Bug Fixes', () => {
+  test('onKeyNav does not intercept Enter when focused on a BUTTON', async ({ page }) => {
+    await setup(page, {
+      startDate: '05/01/2025',
+      endDate: '05/10/2025',
+      locale: { format: 'MM/dd/yyyy' }
+    })
+    await openPicker(page)
+    const applyBtn = page.locator('.drp-apply-button')
+    await applyBtn.focus()
+    await page.keyboard.press('Enter')
+    await expect(page.locator('.daterangepicker')).toBeHidden()
+  })
+
+  test('default daysOfWeek is rotated correctly when firstDay is non-zero', async ({ page }) => {
+    await setup(page, {
+      locale: { firstDay: 1 }
+    })
+    await openPicker(page)
+    const headers = await page.locator('.drp-calendar.left .day-header').allTextContents()
+    expect(headers[0]).toBe('Mo')
+  })
+
+  test('datesEqual handles undefined values safely', async ({ page }) => {
+    await setup(page)
+    const result = await page.evaluate(() => {
+      try {
+        window.pickerInstance.setOptions({
+          startDate: undefined,
+          endDate: undefined
+        })
+        return true
+      } catch (e) {
+        return e.message
+      }
+    })
+    expect(result).toBe(true)
+  })
+
+  test('coerces string number options to numbers', async ({ page }) => {
+    await setup(page, {
+      calendarCount: '3',
+      minuteIncrement: '15'
+    })
+    const options = await page.evaluate(() => {
+      return {
+        calendarCount: window.pickerInstance.options.calendarCount,
+        minuteIncrement: window.pickerInstance.options.minuteIncrement
+      }
+    })
+    expect(options.calendarCount).toBe(3)
+    expect(options.minuteIncrement).toBe(15)
+  })
+})
