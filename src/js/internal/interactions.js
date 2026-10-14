@@ -200,7 +200,7 @@ export function hoverDate(picker, e) {
         const selectedEl = picker.container.querySelector('.drp-selected')
 
         if (selectedEl) {
-          selectedEl.innerHTML = `${hoverStart.toFormat(picker.options.locale.format)}${picker.options.locale.separator}${hoverEnd.toFormat(picker.options.locale.format)}`
+          selectedEl.textContent = `${hoverStart.toFormat(picker.options.locale.format)}${picker.options.locale.separator}${hoverEnd.toFormat(picker.options.locale.format)}`
         }
       }
 
