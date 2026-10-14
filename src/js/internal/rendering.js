@@ -202,8 +202,11 @@ export function updateCalendars(picker) {
     const side = picker.options.endDate ? 'left' : 'right'
     const { hour, minute, second } = readTime(picker, side)
 
-    picker._state.leftCalendar.month = picker._state.leftCalendar.month.set({ hour, minute, second })
-    picker._state.rightCalendar.month = picker._state.rightCalendar.month.set({ hour, minute, second })
+    allCalendars(picker).forEach((cal) => {
+      if (cal.month) {
+        cal.month = cal.month.set({ hour, minute, second })
+      }
+    })
   }
 
   for (let i = 0; i < allCalendars(picker).length; i++) {
@@ -363,7 +366,7 @@ export function renderCalendar(picker, sideOrIdx) {
       const sel = m === monthIdx ? " selected='selected'" : ''
       const dis = selectable ? '' : " disabled='disabled'"
 
-      return `<option value='${m}'${sel}${dis}>${picker.options.locale.monthNames[m]}</option>`
+      return `<option value='${m}'${sel}${dis}>${escapeHtml(picker.options.locale.monthNames[m])}</option>`
     }).join('')
 
     const yearOptions = Array.from({ length: maxYear - minYear + 1 }, (_, i) => minYear + i)
@@ -375,11 +378,11 @@ export function renderCalendar(picker, sideOrIdx) {
 
   const showWeekNums = picker.options.showWeekNumbers || picker.options.showISOWeekNumbers
   const weekLabelHeader = showWeekNums
-    ? `<div class="week day-header" role="columnheader">${picker.options.locale.weekLabel}</div>`
+    ? `<div class="week day-header" role="columnheader">${escapeHtml(picker.options.locale.weekLabel)}</div>`
     : ''
 
   const dayHeaders = picker.options.locale.daysOfWeek
-    .map((d) => `<div class="day-header" role="columnheader">${d}</div>`)
+    .map((d) => `<div class="day-header" role="columnheader">${escapeHtml(d)}</div>`)
     .join('')
 
   if (picker.options.endDate == null && picker.options.startDate && picker.options.maxDuration) {
