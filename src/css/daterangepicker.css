@@ -2,6 +2,7 @@
    Custom properties — override any of these to theme the picker
    ============================================================ */
 .daterangepicker {
+  color-scheme: light dark;
   --drp-bg: light-dark(#ffffff, #1e1e1e);
   --drp-text: light-dark(#333333, #e0e0e0);
   --drp-accent: light-dark(#357ebd, #5b9bd5);
@@ -515,8 +516,7 @@
   gap: 4px;
 }
 
-.daterangepicker .drp-selected,
-.daterangepicker .drp-duration {
+.daterangepicker .drp-selected {
   margin-left: 5px;
 }
 
