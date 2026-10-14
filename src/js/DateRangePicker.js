@@ -44,7 +44,10 @@ class DateRangePicker {
 
     if (!this.element) throw new Error(`DateRangePicker: element not found: ${element}`)
 
+    /** @type {DateRangePickerOptions} */
     this.options = createDefaultOptions()
+    /** @type {HTMLElement|null} */
+    this.container = null
     this.callback = typeof callback === 'function' ? callback : () => {}
 
     if (typeof options !== 'object' || options === null) {
@@ -413,10 +416,13 @@ class DateRangePicker {
   setOptions(options = {}) {
     if (typeof options !== 'object' || options === null) return
 
+    const hasRangesProp = Object.prototype.hasOwnProperty.call(options, 'ranges')
     const touchesRanges =
-      Object.prototype.hasOwnProperty.call(options, 'ranges') ||
+      hasRangesProp ||
       Object.prototype.hasOwnProperty.call(options, 'showCustomRange') ||
       (options.locale && Object.prototype.hasOwnProperty.call(options.locale, 'customRangeLabel'))
+
+    const prevRanges = this.options.ranges
 
     if (touchesRanges) {
       const rangesRoot = this.container.querySelector('.drp-ranges')
@@ -429,9 +435,11 @@ class DateRangePicker {
     }
 
     applyOptions(this, options)
+    initDates(this)
 
     if (touchesRanges) {
-      initRanges(this, { ranges: options.ranges ?? {} })
+      const rangesInput = hasRangesProp ? options.ranges : prevRanges
+      initRanges(this, { ranges: rangesInput ?? {} })
     }
 
     refreshContainer(this, options)
@@ -446,7 +454,7 @@ class DateRangePicker {
 
   /**
    * Subscribes to a picker event. Listeners receive `(startDate, endDate, chosenLabel)`
-   * for `change`, and the picker instance for lifecycle events (`show`/`hide`/`apply`/`cancel`/`clear`).
+   * reflecting the current selection.
    *
    * Events bubble from the trigger element, so you can also listen with
    * `element.addEventListener('change', ...)` and read `event.detail` directly.
@@ -459,7 +467,9 @@ class DateRangePicker {
       if (event === 'change' && (!evt?.detail || typeof evt.detail !== 'object')) return
 
       const detail = evt?.detail && typeof evt.detail === 'object' ? evt.detail : {}
-      const { startDate, endDate, chosenLabel } = detail
+      const startDate = 'startDate' in detail ? detail.startDate : (this.options.startDate ?? null)
+      const endDate = 'endDate' in detail ? detail.endDate : (this.options.endDate ?? null)
+      const chosenLabel = 'chosenLabel' in detail ? detail.chosenLabel : (this._state.chosenLabel ?? null)
 
       fn(startDate, endDate, chosenLabel)
     }
