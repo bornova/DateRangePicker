@@ -145,6 +145,44 @@ export function applyOptions(picker, options) {
 
   picker.options.appendTo = resolvedAppendTo || currentAppendTo || document.body
 
+  if (typeof options.locale === 'object' && options.locale !== null) {
+    const loc = options.locale
+    const localeLabelKeys = ['applyButtonLabel', 'cancelButtonLabel', 'clearButtonLabel']
+
+    for (const key of localeLabelKeys) {
+      if (typeof loc[key] === 'string') {
+        picker.options.locale[key] = loc[key]
+      }
+    }
+
+    if (typeof loc.customRangeLabel === 'string') {
+      picker.options.locale.customRangeLabel = loc.customRangeLabel
+    }
+
+    const localeScalarKeys = ['direction', 'firstDay', 'format', 'separator', 'weekLabel']
+
+    for (const key of localeScalarKeys) {
+      if (typeof loc[key] === typeof picker.options.locale[key]) {
+        picker.options.locale[key] = loc[key]
+      }
+    }
+
+    if (Array.isArray(loc.daysOfWeek)) {
+      const n = picker.options.locale.firstDay
+
+      picker.options.locale.daysOfWeek = [...loc.daysOfWeek.slice(n), ...loc.daysOfWeek.slice(0, n)]
+    } else if (typeof loc.firstDay === 'number') {
+      const baseDays = getWeekdaysMin()
+      const n = picker.options.locale.firstDay
+
+      picker.options.locale.daysOfWeek = [...baseDays.slice(n), ...baseDays.slice(0, n)]
+    }
+
+    if (Array.isArray(loc.monthNames)) {
+      picker.options.locale.monthNames = loc.monthNames.slice()
+    }
+  }
+
   if (options.disabledDates != null) {
     if (Array.isArray(options.disabledDates)) {
       picker.options.disabledDates = options.disabledDates
@@ -172,7 +210,7 @@ export function applyOptions(picker, options) {
       if (picker.options.endDate && !picker.options.endDate.isValid) {
         picker.options.endDate = null
       }
-    } else if (options.startDate != null) {
+    } else if (options.startDate != null && !picker.options.endDate) {
       // Default endDate to end-of-day of startDate when only startDate is supplied
       picker.options.endDate = picker.options.startDate.endOf('day')
     }
@@ -234,44 +272,6 @@ export function applyOptions(picker, options) {
   for (const key of classOptionKeys) {
     if (options[key] != null) {
       picker.options[key] = [].concat(options[key]).join(' ')
-    }
-  }
-
-  if (typeof options.locale === 'object') {
-    const loc = options.locale
-    const localeLabelKeys = ['applyButtonLabel', 'cancelButtonLabel', 'clearButtonLabel']
-
-    for (const key of localeLabelKeys) {
-      if (typeof loc[key] === 'string') {
-        picker.options.locale[key] = loc[key]
-      }
-    }
-
-    if (typeof loc.customRangeLabel === 'string') {
-      picker.options.locale.customRangeLabel = loc.customRangeLabel
-    }
-
-    const localeScalarKeys = ['direction', 'firstDay', 'format', 'separator', 'weekLabel']
-
-    for (const key of localeScalarKeys) {
-      if (typeof loc[key] === typeof picker.options.locale[key]) {
-        picker.options.locale[key] = loc[key]
-      }
-    }
-
-    if (Array.isArray(loc.daysOfWeek)) {
-      const n = picker.options.locale.firstDay
-
-      picker.options.locale.daysOfWeek = [...loc.daysOfWeek.slice(n), ...loc.daysOfWeek.slice(0, n)]
-    } else if (typeof loc.firstDay === 'number') {
-      const baseDays = getWeekdaysMin()
-      const n = picker.options.locale.firstDay
-
-      picker.options.locale.daysOfWeek = [...baseDays.slice(n), ...baseDays.slice(0, n)]
-    }
-
-    if (Array.isArray(loc.monthNames)) {
-      picker.options.locale.monthNames = loc.monthNames.slice()
     }
   }
 }
