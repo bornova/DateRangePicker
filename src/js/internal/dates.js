@@ -118,7 +118,10 @@ export function readTime(picker, side) {
  * @returns {object} Adjusted `DateTime` (or the original when `minuteIncrement` is falsy).
  */
 export function snapMinute(picker, dt, fn = Math.round) {
-  if (!picker.options.minuteIncrement) return dt
+  const inc = picker.options.minuteIncrement
+  if (!inc) return dt
 
-  return dt.set({ minute: fn(dt.minute / picker.options.minuteIncrement) * picker.options.minuteIncrement })
+  const snapped = fn(dt.minute / inc) * inc
+
+  return dt.set({ minute: 0 }).plus({ minutes: snapped })
 }
