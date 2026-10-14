@@ -20,8 +20,8 @@ export function markChosenLabel(picker) {
   if (!picker._state.customRangeSelected) {
     for (const [range, [rangeStart, rangeEnd]] of Object.entries(picker.options.ranges)) {
       if (
-        picker.options.startDate.hasSame(rangeStart, granularity) &&
-        picker.options.endDate.hasSame(rangeEnd, granularity)
+        picker.options.startDate?.hasSame(rangeStart, granularity) &&
+        picker.options.endDate?.hasSame(rangeEnd, granularity)
       ) {
         const li = picker.container.querySelector(`.drp-ranges li[data-range-key="${CSS.escape(range)}"]`)
 
