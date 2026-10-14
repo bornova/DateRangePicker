@@ -146,7 +146,10 @@ export function configureContainer(picker, options) {
     picker.container.classList.add('hide-footer')
   }
 
-  if (typeof options.ranges === 'object') {
+  const hasRanges =
+    (typeof options.ranges === 'object' && options.ranges !== null) || Object.keys(picker.options.ranges).length > 0
+
+  if (hasRanges) {
     picker.container.classList.add('show-drp-ranges')
   }
 
@@ -158,7 +161,7 @@ export function configureContainer(picker, options) {
   }
 
   if (
-    typeof options.ranges === 'undefined' ||
+    !hasRanges ||
     picker.options.alwaysShowCalendars ||
     picker.options.singleDatePicker ||
     picker.options.calendarCount === 1
@@ -172,11 +175,9 @@ export function configureContainer(picker, options) {
     addClasses(picker.container, picker.options.pickerClasses)
   }
 
-  picker.container
-    .querySelectorAll('.drp-apply-button, .drp-cancel-button, .drp-reset-button, .drp-clear-button')
-    .forEach((el) => {
-      addClasses(el, picker.options.buttonClasses)
-    })
+  picker.container.querySelectorAll('.drp-apply-button, .drp-cancel-button, .drp-clear-button').forEach((el) => {
+    addClasses(el, picker.options.buttonClasses)
+  })
 
   if (picker.options.applyButtonClasses) {
     addClasses(picker.container.querySelector('.drp-apply-button'), picker.options.applyButtonClasses)
@@ -309,7 +310,14 @@ export function mount(picker) {
       picker.element.addEventListener('keydown', picker._state.elementKeydownHandler)
     } else {
       picker._state.elementToggleHandler = () => picker.toggle()
-      picker._state.elementKeydownHandler = () => picker.toggle()
+      picker._state.elementKeydownHandler = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          picker.toggle()
+        } else if (e.key === 'Escape') {
+          onElementKey(picker, e)
+        }
+      }
       picker.element.addEventListener('click', picker._state.elementToggleHandler)
       picker.element.addEventListener('keydown', picker._state.elementKeydownHandler)
     }
@@ -358,6 +366,27 @@ export function refreshContainer(picker, options = {}) {
   const newCalCount = Math.max(2, picker.options.calendarCount)
 
   picker._state.extraCalendars = Array.from({ length: newCalCount - 2 }, () => ({}))
+
+  if (calContainerEl) {
+    const existingCals = Array.from(calContainerEl.querySelectorAll(':scope > .drp-calendar[data-cal-index]'))
+
+    if (existingCals.length > 0 && existingCals.length !== newCalCount) {
+      existingCals.forEach((el) => el.remove())
+
+      for (let i = 0; i < newCalCount; i++) {
+        const calDiv = document.createElement('div')
+        const classes = ['drp-calendar']
+
+        if (i === 0) classes.push('left')
+        if (i === newCalCount - 1) classes.push('right')
+
+        calDiv.className = classes.join(' ')
+        calDiv.dataset.calIndex = String(i)
+        calDiv.innerHTML = '<div class="calendar-table"></div>'
+        calContainerEl.appendChild(calDiv)
+      }
+    }
+  }
 
   const leftCal = picker.container.querySelector('.drp-calendar.left')
   const rightCal = picker.container.querySelector('.drp-calendar.right')
