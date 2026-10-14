@@ -2944,4 +2944,87 @@ test.describe('Improvements / Bug Fixes', () => {
     expect(options.calendarCount).toBe(3)
     expect(options.minuteIncrement).toBe(15)
   })
+
+  test('parses string dates using custom locale.format supplied in the same options object', async ({ page }) => {
+    await setup(page, {
+      startDate: '2025-04-01',
+      endDate: '2025-04-10',
+      locale: { format: 'yyyy-MM-dd' }
+    })
+    await expect(page.locator('#picker')).toHaveValue('2025-04-01 - 2025-04-10')
+  })
+
+  test('snapMinute rolls over to next hour when rounding up to 60', async ({ page }) => {
+    await setup(page, {
+      showTimePicker: true,
+      timePicker24Hour: true,
+      minuteIncrement: 15,
+      locale: { format: 'yyyy-MM-dd HH:mm' }
+    })
+    const iso = await page.evaluate(() => {
+      window.pickerInstance.setStartDate('2025-04-15 10:55')
+      return window.pickerInstance.options.startDate.toFormat('yyyy-MM-dd HH:mm')
+    })
+    expect(iso).toBe('2025-04-15 11:00')
+  })
+
+  test('setOptions({ calendarCount }) reconciles .drp-calendar DOM panels dynamically', async ({ page }) => {
+    await setup(page, { calendarCount: 2 })
+    await openPicker(page)
+    await expect(page.locator('.drp-calendar')).toHaveCount(2)
+
+    await page.evaluate(() => window.pickerInstance.setOptions({ calendarCount: 4 }))
+    await expect(page.locator('.drp-calendar')).toHaveCount(4)
+
+    await page.evaluate(() => window.pickerInstance.setOptions({ calendarCount: 2 }))
+    await expect(page.locator('.drp-calendar')).toHaveCount(2)
+  })
+
+  test('setOptions({ showCustomRange: false }) preserves existing predefined ranges', async ({ page }) => {
+    await setup(page, {
+      locale: { format: 'MM/dd/yyyy' },
+      ranges: {
+        Today: ['04/23/2025', '04/23/2025'],
+        Yesterday: ['04/22/2025', '04/22/2025']
+      }
+    })
+    await page.evaluate(() => window.pickerInstance.setOptions({ showCustomRange: false }))
+    await openPicker(page)
+    await expect(page.locator('.drp-ranges li[data-range-key="Today"]')).toBeVisible()
+    await expect(page.locator('.drp-ranges li[data-range-key="Custom Range"]')).toHaveCount(0)
+  })
+
+  test('non-input trigger only toggles on Enter or Space, not Tab', async ({ page }) => {
+    await page.goto(FIXTURE)
+    await page.evaluate(() => window.createDivPicker())
+    const toggle = page.locator('#toggle-anchor')
+    await toggle.focus()
+    await page.keyboard.press('Tab')
+    await expect(page.locator('.daterangepicker')).toBeHidden()
+
+    await toggle.focus()
+    await page.keyboard.press('Enter')
+    await expect(page.locator('.daterangepicker')).toBeVisible()
+  })
+
+  test('on("show") and on("hide") pass current selection to listener', async ({ page }) => {
+    await setup(page, {
+      startDate: '04/01/2025',
+      endDate: '04/10/2025',
+      locale: { format: 'MM/dd/yyyy' }
+    })
+    const seen = await page.evaluate(() => {
+      const events = []
+      window.pickerInstance.on('show', (s, e) => {
+        events.push(`show:${s?.toFormat('MM/dd/yyyy')}-${e?.toFormat('MM/dd/yyyy')}`)
+      })
+      window.pickerInstance.on('hide', (s, e) => {
+        events.push(`hide:${s?.toFormat('MM/dd/yyyy')}-${e?.toFormat('MM/dd/yyyy')}`)
+      })
+      window.pickerInstance.show()
+      window.pickerInstance.hide()
+      return events
+    })
+    expect(seen).toEqual(['show:04/01/2025-04/10/2025', 'hide:04/01/2025-04/10/2025'])
+  })
 })
